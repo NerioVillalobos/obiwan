@@ -3,6 +3,15 @@ import subprocess
 import os
 import git  # Importa la biblioteca gitpython
 
+def leer_diff_txt():
+
+    diff_file = open("diff.txt", "r")
+    diff_lines = diff_file.readlines()
+    diff_file.close()
+
+    return diff_lines
+
+
 def is_git_repository():
     try:
         repo = git.Repo(search_parent_directories=True)
@@ -60,3 +69,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # Lee el contenido del archivo diff.txt
+    diff_lines = leer_diff_txt()
+
+    # Imprime el contenido del archivo diff.txt línea por línea
+    for line in diff_lines:
+        print(line)
