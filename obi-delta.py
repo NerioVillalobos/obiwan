@@ -3,13 +3,38 @@ import subprocess
 import os
 import git  # Importa la biblioteca gitpython
 
+
 def leer_diff_txt():
 
     diff_file = open("diff.txt", "r")
     diff_lines = diff_file.readlines()
     diff_file.close()
 
-    return diff_lines
+    # Crea una lista vacía para almacenar los resultados
+    results = []
+
+    # Itera sobre las líneas del archivo diff
+    for line in diff_lines:
+        # Si la línea contiene "force-app/main/default"
+        if "force-app/main/default" in line:
+            # Obtiene el nombre de la carpeta del componente
+            foldercomponent = line.split("/")[4]
+
+            # Si el nombre de la carpeta es "classes"
+            if foldercomponent == "classes":
+                # Obtiene el nombre del archivo
+                filename = line.split("/")[5]
+
+                # Elimina la extensión del archivo
+                item = filename.split(".")[0]
+
+                # Agrega los resultados a la lista
+                results.append({
+                    "foldercomponent": foldercomponent,
+                    "item": item
+                })
+
+    return results
 
 
 def is_git_repository():
