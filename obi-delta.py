@@ -20,7 +20,15 @@ def run_git_diff(rama_origen, rama_destino):
     gitcheckout_destino = f"git checkout {rama_destino}"
     gitpullorigin_destino = f"git pull origin {rama_destino}"
 
-    # Resto del código de run_git_diff aquí...
+    subprocess.run(gitcheckout_origen, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(gitpull, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(gitcheckout_destino, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(gitpull, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(gitcheckout_origen, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(gitpullorigin_destino, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    diff_result = f"git diff --name-only --diff-filter=AMR {rama_destino} {rama_origen} > diff.txt"
+    subprocess.run(diff_result, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def main():
     parser = argparse.ArgumentParser(description="Captura valores Branch_Origen y Branch_Destino")
