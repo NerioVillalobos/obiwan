@@ -94,10 +94,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # Lee el contenido del archivo diff.txt
-    diff_lines = leer_diff_txt()
-
-    # Imprime el contenido del archivo diff.txt línea por línea
-    for line in diff_lines:
-        print(line)
+    
+    leer_diff_txt()
