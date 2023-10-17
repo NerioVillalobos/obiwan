@@ -2,6 +2,45 @@ import argparse
 import subprocess
 import os
 import git  # Importa la biblioteca gitpython
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+
+def generate_xml(results):
+    # Crear elemento raíz del XML
+    package = ET.Element('Package')
+    package.set('xmlns', 'http://soap.sforce.com/2006/04/metadata')
+    
+    # Crear diccionario para agrupar los elementos por <name>
+    type_dict = {}
+    for item in results:
+        type_name, member = item
+        if type_name not in type_dict:
+            type_dict[type_name] = []
+        type_dict[type_name].append(member)
+    
+    # Crear elementos para cada tipo de componente
+    for type_name, members in type_dict.items():
+        type_element = ET.SubElement(package, 'types')
+        for member in members:
+            ET.SubElement(type_element, 'members').text = member
+        ET.SubElement(type_element, 'name').text = type_name
+    
+    # Añadir la versión al XML
+    version = ET.SubElement(package, 'version')
+    version.text = '57.0'
+    
+    # Crear el objeto ElementTree y escribir el archivo XML con indentación
+    tree = ET.ElementTree(package)
+    tree.write('package-test.xml', encoding='UTF-8', xml_declaration=True, short_empty_elements=False)
+    
+    # Leer el archivo XML y formatearlo con indentación
+    with open('package-test.xml', 'r') as file:
+        xml_content = file.read()
+    formatted_xml = minidom.parseString(xml_content).toprettyxml(indent="    ")
+    
+    # Guardar el archivo XML formateado
+    with open('package-test.xml', 'w') as file:
+        file.write(formatted_xml)
 
 
 def leer_diff_txt():
@@ -430,12 +469,49 @@ def leer_diff_txt():
                 foldercomponent = "CustomNotificationType"
 
             if foldercomponent == "objects":
-                # Obtiene el nombre del archivo
-                filename = line.split("/")[4]
-            
-                # Elimina la extensión del archivo
-                item = filename.split(".")[0]
-                foldercomponent = "CustomObject"
+                obj1=line.split("/")[4]
+                obj2=line.split("/")[5]
+                obj3=line.split("/")[6]
+                if obj1 != obj2:
+                    if obj2 == 'fields':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'CustomField'
+                    if obj2 == 'index':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'Index'
+                    if obj2 == 'businessProcess':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'BusinessProcess'
+                    if obj2 == 'recordTypes':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'RecordType'
+                    if obj2 == 'recordTypes':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'RecordType'
+                    if obj2 == 'compactLayouts':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'CompactLayout'
+                    if obj2 == 'webLinks':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'WebLink'
+                    if obj2 == 'validationRules':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'ValidationRule'
+                    if obj2 == 'sharingReasons':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'SharingReason'
+                    if obj2 == 'listViews':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'ListView'
+                    if obj2 == 'fieldSets':
+                        item = obj1+'.'+obj3.split('.')[0]
+                        foldercomponent = 'FieldSet'
+                else:
+                    # Obtiene el nombre del archivo
+                    filename = line.split("/")[4]
+                    # Elimina la extensión del archivo
+                    item = filename.split(".")[1]
+                    foldercomponent = "CustomObject"
 
             if foldercomponent == "objectTranslations":
                 # Obtiene el nombre del archivo
@@ -670,40 +746,14 @@ def leer_diff_txt():
                 foldercomponent = "Workflow"
             
             # Agrega los resultados a la lista
-            results.append({"foldercomponent": foldercomponent,"item": item})
+            results.append((foldercomponent,item))
 
-    return results
+    results_unique = []
+    for result in results:
+        if result not in results_unique:
+            results_unique.append(result)
 
-def transformar_archivo(input_filename, output_filename):
-    try:
-        data_dict = {}  # Diccionario para almacenar los datos ordenados por tipo
-        with open(input_filename, 'r') as input_file:
-            for line in input_file:
-                # Eliminar los caracteres no deseados y dividir la línea en partes
-                line = line.strip('() \n')
-                parts = line.split(', ')
-                
-                # Extraer el valor de 'item' y 'foldercomponent'
-                item = parts[1].split("'")[1]
-                foldercomponent = parts[0].split("'")[1]
-                
-                # Agregar el elemento a la lista correspondiente en el diccionario
-                if foldercomponent not in data_dict:
-                    data_dict[foldercomponent] = []
-                data_dict[foldercomponent].append(item)
-        
-        # Ordenar y escribir en el archivo de salida
-        with open(output_filename, 'w') as output_file:
-            for foldercomponent, items in sorted(data_dict.items()):
-                for item in sorted(items):
-                    output_file.write(f"{foldercomponent} -- item : {item}\n")
-                
-        print(f"La transformación se ha completado con éxito. El resultado se ha guardado en '{output_filename}'.")
-    except FileNotFoundError:
-        print(f"El archivo '{input_filename}' no fue encontrado.")
-    except Exception as e:
-        print(f"Ocurrió un error durante la transformación: {str(e)}")
-
+    return results_unique
 
 
 def is_git_repository():
@@ -764,25 +814,13 @@ def main():
     # Llama a la función leer_diff_txt y guarda los resultados
     results = leer_diff_txt()
 
+
     # Imprime todos los resultados al final
-    #print("Resultados finales:")
-    #unique_results = set(tuple(result.items()) for result in results)
-    #for result in unique_results:
-    #    print(result)
-
     print("Resultados finales:")
-    unique_results = set(tuple(result.items()) for result in results)
-
-    with open("caption1.txt", "w") as file:
-        for result in unique_results:
-            file.write(str(result) + "\n")
-
-    print("¡Archivo 'caption1.txt' creado exitosamente con los valores de 'result'!")
-
+    for result in results:
+        print(result)
     
-    #input_filename = 'nombre_del_archivo_de_entrada.txt'
-    #output_filename = 'nombre_del_archivo_de_salida.txt'
-    #transformar_archivo(input_filename, output_filename)
+    generate_xml(results)
 
 if __name__ == "__main__":
     main()
