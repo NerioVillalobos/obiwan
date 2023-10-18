@@ -4,6 +4,56 @@ import os
 import git  # Importa la biblioteca gitpython
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+import yaml
+
+def create_yaml_file():
+    unique_directories = set()
+    with open('diff.txt', 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            if 'Vlocity/' in line:
+                directories = line.split('/')[1:-1]
+                unique_directories.add('/'.join(directories))
+
+    yaml_data = {
+        'projectPath': './Vlocity',
+        'continueAfterError': True,
+        'autoUpdateSettings': True,
+        'manifest': sorted(list(unique_directories)),
+        'OverrideSettings': {
+            'DataPacks': {
+                'Catalog': {
+                    'Product2': {
+                        'MaxDeploy': 1
+                    }
+                }
+            }
+        }
+    }
+    git_branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+    fixed_git_branch_name=git_branch_name.replace("/", "-")
+    nombrefinal='CERTA-'+fixed_git_branch_name+'.yaml'
+    with open(nombrefinal, 'w') as file:
+        file.write("projectPath: ./Vlocity\n")
+        file.write("continueAfterError: true\n")
+        file.write("autoUpdateSettings: true\n\n")
+        file.write("manifest:\n")
+        for directory in sorted(list(unique_directories)):
+            file.write("- " + directory + "\n")
+
+        file.write("\nOverrideSettings:\n")
+        file.write("DataPacks:\n")
+        file.write("Catalog:\n")
+        file.write("Product2:\n")
+        file.write("MaxDeploy: 1\n")
+
+
+def eliminar_archivo(ruta_archivo):
+    if os.path.exists(ruta_archivo):
+        os.remove(ruta_archivo)
+        print("El archivo ha sido eliminado exitosamente.")
+    else:
+        print("El archivo no existe.")
 
 def generate_xml(results):
     # Crear elemento raíz del XML
@@ -31,15 +81,18 @@ def generate_xml(results):
     
     # Crear el objeto ElementTree y escribir el archivo XML con indentación
     tree = ET.ElementTree(package)
-    tree.write('package-test.xml', encoding='UTF-8', xml_declaration=True, short_empty_elements=False)
+    git_branch_name = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).decode().strip()
+    fixed_git_branch_name=git_branch_name.replace("/", "-")
+    nombrefinal='CERTA-'+fixed_git_branch_name+'.xml'
+    tree.write(nombrefinal, encoding='UTF-8', xml_declaration=True, short_empty_elements=False)
     
     # Leer el archivo XML y formatearlo con indentación
-    with open('package-test.xml', 'r') as file:
+    with open(nombrefinal, 'r') as file:
         xml_content = file.read()
     formatted_xml = minidom.parseString(xml_content).toprettyxml(indent="    ")
     
     # Guardar el archivo XML formateado
-    with open('package-test.xml', 'w') as file:
+    with open(nombrefinal, 'w') as file:
         file.write(formatted_xml)
 
 
@@ -233,16 +286,21 @@ def leer_diff_txt():
                 filename = line.split("/")[4]
             
                 # Elimina la extensión del archivo
-                item = filename.split(".")[0]
+                item = filename.split(".")[0]+"."+filename.split(".")[1]
                 foldercomponent = "DuplicateRule"
 
             if foldercomponent == "email":
                 # Obtiene el nombre del archivo
                 filename = line.split("/")[4]
-            
-                # Elimina la extensión del archivo
                 item = filename.split(".")[0]
                 foldercomponent = "EmailTemplate"
+                results.append((foldercomponent,item))
+                if line.split("/")[5] != '':
+                    obj1 = line.split("/")[4]
+                    obj2 = line.split("/")[5]
+                    obj2a = obj2.split('.')[0]
+                    item = obj1+'/'+obj2a
+                    foldercomponent = "EmailTemplate"
 
             if foldercomponent == "emailservices":
                 # Obtiene el nombre del archivo
@@ -471,39 +529,46 @@ def leer_diff_txt():
             if foldercomponent == "objects":
                 obj1=line.split("/")[4]
                 obj2=line.split("/")[5]
-                obj3=line.split("/")[6]
+        
                 if obj1 != obj2:
                     if obj2 == 'fields':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'CustomField'
                     if obj2 == 'index':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'Index'
                     if obj2 == 'businessProcess':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'BusinessProcess'
                     if obj2 == 'recordTypes':
-                        item = obj1+'.'+obj3.split('.')[0]
-                        foldercomponent = 'RecordType'
-                    if obj2 == 'recordTypes':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'RecordType'
                     if obj2 == 'compactLayouts':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'CompactLayout'
                     if obj2 == 'webLinks':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'WebLink'
                     if obj2 == 'validationRules':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'ValidationRule'
                     if obj2 == 'sharingReasons':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'SharingReason'
                     if obj2 == 'listViews':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'ListView'
                     if obj2 == 'fieldSets':
+                        obj3=line.split("/")[6]
                         item = obj1+'.'+obj3.split('.')[0]
                         foldercomponent = 'FieldSet'
                 else:
@@ -692,7 +757,6 @@ def leer_diff_txt():
             if foldercomponent == "staticresources":
                 # Obtiene el nombre del archivo
                 filename = line.split("/")[4]
-            
                 # Elimina la extensión del archivo
                 item = filename.split(".")[0]
                 foldercomponent = "StaticResource"
@@ -746,7 +810,8 @@ def leer_diff_txt():
                 foldercomponent = "Workflow"
             
             # Agrega los resultados a la lista
-            results.append((foldercomponent,item))
+            if foldercomponent != 'objects':
+                results.append((foldercomponent,item))
 
     results_unique = []
     for result in results:
@@ -783,6 +848,7 @@ def run_git_diff(rama_origen, rama_destino):
     diff_result = f"git diff --name-only --diff-filter=AMR {rama_destino} {rama_origen} > diff.txt"
     subprocess.run(diff_result, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+
 def main():
     parser = argparse.ArgumentParser(description="Captura valores Branch_Origen y Branch_Destino")
     parser.add_argument("Branch_Origen", nargs='?', help="Valor para Branch_Origen")
@@ -817,10 +883,16 @@ def main():
 
     # Imprime todos los resultados al final
     print("Resultados finales:")
-    for result in results:
-        print(result)
+    #for result in results:
+    #    print(result)
     
     generate_xml(results)
+    print('Creado Archivo XML')
+    create_yaml_file()
+    print('Creado Archivo YAML')
+
+    ruta_archivo_diff = "diff.txt"
+    eliminar_archivo(ruta_archivo_diff)
 
 if __name__ == "__main__":
     main()
